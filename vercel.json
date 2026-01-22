@@ -16,16 +16,20 @@
       "dest": "server.js"
     },
     {
-      "src": "/styles.css",
-      "dest": "/public/styles.css"
-    },
-    {
-      "src": "/(.*\\.html)",
-      "dest": "/public/$1"
-    },
-    {
       "src": "/",
       "dest": "/public/index.html"
+    },
+    {
+      "src": "/host.html",
+      "dest": "/public/host.html"
+    },
+    {
+      "src": "/join.html",
+      "dest": "/public/join.html"
+    },
+    {
+      "src": "/styles.css",
+      "dest": "/public/styles.css"
     },
     {
       "src": "/(.*)",
