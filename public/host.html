@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Host Debate - DebAItor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>DebAItor</h1>
+      <p class="subtitle">Host Control Panel</p>
+    </header>
+
+    <main class="host-container">
+      <!-- Step 1: Create Room -->
+      <section id="createSection">
+        <h2>Create a Debate Room</h2>
+        <form id="createForm">
+          <label for="topic">Debate Topic:</label>
+          <textarea 
+            id="topic" 
+            placeholder="e.g., 'AI will replace most human jobs within 10 years'"
+            rows="3"
+            required
+          ></textarea>
+          <button type="submit" class="btn btn-primary">Create Room</button>
+        </form>
+      </section>
+
+      <!-- Step 2: Waiting Room -->
+      <section id="waitingSection" class="hidden">
+        <div class="room-info">
+          <div class="room-code" id="roomCodeDisplay">------</div>
+          <div class="topic-display">
+            <strong>Topic</strong>
+            <span id="topicDisplay"></span>
+          </div>
+        </div>
+
+        <div class="qr-container">
+          <p>Scan to join:</p>
+          <img id="qrCode" src="" alt="QR Code">
+          <p id="joinLink" style="font-size: 0.75rem; margin-top: 10px; word-break: break-all;"></p>
+        </div>
+
+        <div class="participants-section">
+          <div class="participants-header">
+            <h3>Participants</h3>
+            <span id="participantCount">0 joined</span>
+          </div>
+          <ul class="participant-list" id="participantList"></ul>
+        </div>
+
+        <button id="startDebateBtn" class="btn btn-primary" style="margin-top: 20px;">
+          🎬 Start Debate
+        </button>
+      </section>
+
+      <!-- Step 3: Debate In Progress -->
+      <section id="debateSection" class="hidden">
+        <div class="room-info" style="margin-bottom: 20px;">
+          <div style="text-align: center;">
+            <strong>Room:</strong> <span id="activeRoomCode"></span>
+          </div>
+          <div class="topic-display">
+            <strong>Topic</strong>
+            <span id="activeTopicDisplay"></span>
+          </div>
+        </div>
+
+        <div class="turn-indicator">
+          <div class="round-badge">Round <span id="currentRound">1</span></div>
+          <div class="current-turn">
+            <span class="turn-label">Current Turn:</span>
+            <span class="turn-name" id="currentTurnName">---</span>
+          </div>
+          <div class="turn-status" id="turnStatus">Waiting for response...</div>
+        </div>
+
+        <div class="participants-section">
+          <h3>Players</h3>
+          <ul class="participant-list" id="debateParticipantList"></ul>
+        </div>
+
+        <div class="host-controls">
+          <button id="nextTurnBtn" class="btn btn-secondary">
+            ⏭️ Next Turn
+          </button>
+          <button id="endDebateBtn" class="btn btn-primary">
+            🏁 End Debate & Show Results
+          </button>
+        </div>
+      </section>
+
+      <!-- Step 4: Results -->
+      <section id="resultsSection" class="hidden">
+        <h2>🏆 Final Results</h2>
+        <div class="results-topic">
+          <strong>Topic:</strong> <span id="resultsTopic"></span>
+        </div>
+        <div id="resultsContent" class="leaderboard"></div>
+        <button id="newDebateBtn" class="btn btn-secondary" style="margin-top: 20px;">
+          Start New Debate
+        </button>
+      </section>
+    </main>
+
+    <footer>
+      <p>DebAItor • Turn-Based Debate MVP</p>
+    </footer>
+  </div>
+
+  <style>
+    .turn-indicator {
+      background: #f0f0f0;
+      border: 2px solid #000;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .round-badge {
+      display: inline-block;
+      background: #000;
+      color: #fff;
+      padding: 5px 15px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .current-turn {
+      font-size: 1.5rem;
+      margin: 10px 0;
+    }
+    .turn-label {
+      color: #666;
+    }
+    .turn-name {
+      font-weight: bold;
+      color: #000;
+    }
+    .turn-status {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 10px;
+    }
+    .host-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .host-controls .btn {
+      flex: 1;
+    }
+    .results-topic {
+      background: #f5f5f5;
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+    }
+    .response-item {
+      background: #f9f9f9;
+      padding: 10px;
+      margin-top: 10px;
+      border-left: 3px solid #ccc;
+    }
+    .response-item .round-label {
+      font-weight: bold;
+      color: #666;
+    }
+  </style>
+
+  <script>
+    const API_BASE = '';
+    let currentRoom = null;
+    let pollInterval = null;
+
+    // Elements
+    const createSection = document.getElementById('createSection');
+    const waitingSection = document.getElementById('waitingSection');
+    const debateSection = document.getElementById('debateSection');
+    const resultsSection = document.getElementById('resultsSection');
+
+    // Create room
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const topic = document.getElementById('topic').value.trim();
+
+      try {
+        const res = await fetch(`${API_BASE}/api/rooms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic })
+        });
+
+        if (!res.ok) throw new Error('Failed to create room');
+        const data = await res.json();
+        
+        // Store room data including topic
+        currentRoom = {
+          roomCode: data.roomCode,
+          topic: topic,
+          hostId: data.hostId
+        };
+
+        document.getElementById('roomCodeDisplay').textContent = data.roomCode;
+        document.getElementById('topicDisplay').textContent = topic;
+
+        // Get QR code
+        const qrRes = await fetch(`${API_BASE}/api/rooms/${data.roomCode}/qr`);
+        const qrData = await qrRes.json();
+        document.getElementById('qrCode').src = qrData.qrCode;
+        document.getElementById('joinLink').textContent = qrData.joinUrl;
+
+        createSection.classList.add('hidden');
+        waitingSection.classList.remove('hidden');
+
+        startPolling('waiting');
+
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    });
+
+    // Polling for updates
+    function startPolling(mode) {
+      if (pollInterval) clearInterval(pollInterval);
+      
+      pollInterval = setInterval(async () => {
+        if (!currentRoom) return;
+
+        try {
+          const res = await fetch(`${API_BASE}/api/rooms/${currentRoom.roomCode}`);
+          if (!res.ok) return;
+          const data = await res.json();
+
+          if (mode === 'waiting') {
+            updateWaitingParticipants(data.participants);
+          } else if (mode === 'debate') {
+            updateDebateStatus(data);
+          }
+
+        } catch (error) {
+          console.error('Polling error:', error);
+        }
+      }, 1500);
+    }
+
+    function updateWaitingParticipants(participants) {
+      document.getElementById('participantCount').textContent = `${participants.length} joined`;
+      document.getElementById('participantList').innerHTML = participants.map(p => `
+        <li class="participant-item">
+          <span class="participant-name">${escapeHtml(p.name)}</span>
+        </li>
+      `).join('');
+
+      // Enable start button only if participants exist
+      document.getElementById('startDebateBtn').disabled = participants.length === 0;
+    }
+
+    function updateDebateStatus(data) {
+      document.getElementById('currentRound').textContent = data.currentRound || 1;
+      document.getElementById('currentTurnName').textContent = data.currentTurnName || '---';
+
+      document.getElementById('debateParticipantList').innerHTML = data.participants.map(p => `
+        <li class="participant-item">
+          <span class="participant-name">${escapeHtml(p.name)}</span>
+          <span class="participant-status ${p.isCurrentTurn ? 'status-submitted' : 'status-waiting'}">
+            ${p.isCurrentTurn ? '🎤 Speaking' : `${p.responses} turns`}
+          </span>
+        </li>
+      `).join('');
+    }
+
+    // Start debate
+    document.getElementById('startDebateBtn').addEventListener('click', async () => {
+      if (!currentRoom) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/rooms/${currentRoom.roomCode}/start`, {
+          method: 'POST'
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error);
+        }
+
+        const data = await res.json();
+
+        // Switch to debate view
+        document.getElementById('activeRoomCode').textContent = currentRoom.roomCode;
+        document.getElementById('activeTopicDisplay').textContent = currentRoom.topic;
+        document.getElementById('currentRound').textContent = data.round;
+        document.getElementById('currentTurnName').textContent = data.currentTurnName;
+
+        waitingSection.classList.add('hidden');
+        debateSection.classList.remove('hidden');
+
+        startPolling('debate');
+
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    });
+
+    // Next turn
+    document.getElementById('nextTurnBtn').addEventListener('click', async () => {
+      if (!currentRoom) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/rooms/${currentRoom.roomCode}/next-turn`, {
+          method: 'POST'
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error);
+        }
+
+        const data = await res.json();
+        document.getElementById('currentRound').textContent = data.round;
+        document.getElementById('currentTurnName').textContent = data.currentTurnName;
+
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    });
+
+    // End debate
+    document.getElementById('endDebateBtn').addEventListener('click', async () => {
+      if (!currentRoom) return;
+      if (!confirm('End the debate and show final results?')) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/rooms/${currentRoom.roomCode}/end`, {
+          method: 'POST'
+        });
+
+        if (!res.ok) throw new Error('Failed to end debate');
+
+        const data = await res.json();
+        displayResults(data);
+
+        debateSection.classList.add('hidden');
+        resultsSection.classList.remove('hidden');
+
+        if (pollInterval) clearInterval(pollInterval);
+
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    });
+
+    function displayResults(data) {
+      document.getElementById('resultsTopic').textContent = data.topic;
+
+      if (data.results.length === 0) {
+        document.getElementById('resultsContent').innerHTML = '<p>No submissions.</p>';
+        return;
+      }
+
+      document.getElementById('resultsContent').innerHTML = data.results.map(r => `
+        <div class="result-card">
+          <div class="result-header">
+            <span class="result-rank ${r.rank === 1 ? 'first' : ''}">#${r.rank}</span>
+            <span class="result-name">${escapeHtml(r.name)}</span>
+            <span class="result-final-score">${r.averageScore.toFixed(1)}</span>
+          </div>
+          ${r.totalResponses > 0 ? `
+            <div class="scores-grid">
+              <div class="score-item">
+                <span class="score-label">Logic</span>
+                <span class="score-value">${r.averageScores.logic}/10</span>
+              </div>
+              <div class="score-item">
+                <span class="score-label">Clarity</span>
+                <span class="score-value">${r.averageScores.clarity}/10</span>
+              </div>
+              <div class="score-item">
+                <span class="score-label">Relevance</span>
+                <span class="score-value">${r.averageScores.relevance}/10</span>
+              </div>
+              <div class="score-item">
+                <span class="score-label">Emotional Bias</span>
+                <span class="score-value">${r.averageScores.emotionalBias}/10</span>
+              </div>
+            </div>
+            <p style="margin-top: 10px; color: #666;"><strong>${r.totalResponses}</strong> response(s)</p>
+            ${r.responses.map((resp, i) => `
+              <div class="response-item">
+                <div class="round-label">Round ${resp.round}</div>
+                <div style="margin: 5px 0;">Score: <strong>${resp.scores.finalScore}</strong></div>
+                <div style="font-size: 0.85rem; color: #666;">💡 ${escapeHtml(resp.scores.insight)}</div>
+                <div style="font-size: 0.85rem; margin-top: 5px;">"${escapeHtml(resp.transcript)}"</div>
+              </div>
+            `).join('')}
+          ` : `<p style="color: #999;">No responses submitted</p>`}
+        </div>
+      `).join('');
+    }
+
+    // New debate
+    document.getElementById('newDebateBtn').addEventListener('click', () => {
+      currentRoom = null;
+      document.getElementById('topic').value = '';
+      resultsSection.classList.add('hidden');
+      createSection.classList.remove('hidden');
+    });
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join Debate - DebAItor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>DebAItor</h1>
+      <p class="subtitle">Join Debate</p>
+    </header>
+
+    <main class="join-container">
+      <!-- Step 1: Enter Name -->
+      <section id="nameSection">
+        <form id="joinForm">
+          <div class="room-info" style="margin-bottom: 20px;">
+            <div class="room-code" id="roomCodeShow">------</div>
+          </div>
+          <label for="participantName">Your Name:</label>
+          <input 
+            type="text" 
+            id="participantName" 
+            placeholder="Enter your name"
+            maxlength="30"
+            required
+          >
+          <button type="submit" class="btn btn-primary">Join Room</button>
+        </form>
+      </section>
+
+      <!-- Step 2: Waiting for Debate to Start -->
+      <section id="waitingSection" class="hidden">
+        <div class="topic-card">
+          <p class="topic-label">DEBATE TOPIC</p>
+          <p class="topic-text" id="topicText"></p>
+        </div>
+        <div class="waiting-message">
+          <div class="spinner"></div>
+          <p>Waiting for host to start the debate...</p>
+          <p style="font-size: 0.9rem; color: #666;">You'll be notified when it's your turn</p>
+        </div>
+      </section>
+
+      <!-- Step 3: Waiting for Your Turn -->
+      <section id="turnWaitSection" class="hidden">
+        <div class="topic-card">
+          <p class="topic-label">DEBATE TOPIC</p>
+          <p class="topic-text" id="turnTopicText"></p>
+        </div>
+        <div class="turn-wait-indicator">
+          <div class="round-badge">Round <span id="waitRound">1</span></div>
+          <div class="current-speaker">
+            <p>Current Speaker:</p>
+            <p class="speaker-name" id="currentSpeakerName">---</p>
+          </div>
+          <p class="wait-message">⏳ Wait for your turn...</p>
+        </div>
+        <div class="my-scores" id="myScores"></div>
+      </section>
+
+      <!-- Step 4: Your Turn - Record -->
+      <section id="recordSection" class="hidden">
+        <div class="topic-card your-turn-card">
+          <p class="topic-label">🎤 YOUR TURN! Round <span id="recordRound">1</span></p>
+          <p class="topic-text" id="recordTopicText"></p>
+        </div>
+
+        <div class="record-section">
+          <div class="timer-display">
+            <span class="timer-value" id="timer">30</span>
+            <span class="timer-label">seconds</span>
+          </div>
+          <button class="record-btn" id="recordBtn">
+            <span id="recordIcon">🎤</span>
+          </button>
+          <p class="record-instructions" id="recordInstructions">
+            Tap to start recording
+          </p>
+        </div>
+
+        <div id="submitContainer" class="hidden" style="margin-top: 30px;">
+          <button id="submitBtn" class="btn btn-primary">✓ Submit Response</button>
+          <button id="reRecordBtn" class="btn btn-secondary" style="margin-top: 10px;">
+            🔄 Re-record
+          </button>
+        </div>
+      </section>
+
+      <!-- Step 5: Processing -->
+      <section id="processingSection" class="hidden">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Processing your response...</p>
+          <p style="font-size: 0.9rem; color: #666;">AI is transcribing and evaluating...</p>
+        </div>
+      </section>
+
+      <!-- Step 6: Debate Ended - Results -->
+      <section id="resultSection" class="hidden">
+        <h2>🏁 Debate Ended!</h2>
+        <p style="color: #666; margin-bottom: 20px;">Check the host screen for final rankings.</p>
+        <div id="personalResults"></div>
+      </section>
+
+      <!-- Error Section -->
+      <section id="errorSection" class="hidden">
+        <div class="message message-error" id="errorMessage">An error occurred.</div>
+        <button class="btn btn-secondary" onclick="location.reload()">Try Again</button>
+      </section>
+    </main>
+
+    <footer>
+      <p>DebAItor • Turn-Based Debate</p>
+    </footer>
+  </div>
+
+  <style>
+    .waiting-message {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .turn-wait-indicator {
+      text-align: center;
+      padding: 30px;
+      background: #f5f5f5;
+      border: 2px solid #000;
+      margin-bottom: 20px;
+    }
+    .round-badge {
+      display: inline-block;
+      background: #000;
+      color: #fff;
+      padding: 5px 15px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+    .current-speaker {
+      margin: 15px 0;
+    }
+    .speaker-name {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin: 5px 0;
+    }
+    .wait-message {
+      color: #666;
+      font-style: italic;
+    }
+    .my-scores {
+      margin-top: 20px;
+    }
+    .my-score-item {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 10px;
+    }
+    .your-turn-card {
+      background: #d4edda !important;
+      border-color: #28a745 !important;
+    }
+    .timer-display {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .timer-value {
+      font-size: 4rem;
+      font-weight: bold;
+      font-family: monospace;
+      display: block;
+    }
+    .timer-value.warning {
+      color: #dc3545;
+    }
+    .timer-value.recording {
+      color: #28a745;
+    }
+    .timer-label {
+      font-size: 1rem;
+      color: #666;
+    }
+    .record-btn {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 4px solid #000;
+      background: #fff;
+      font-size: 3rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+      transition: all 0.2s;
+    }
+    .record-btn:hover {
+      transform: scale(1.05);
+    }
+    .record-btn.recording {
+      background: #dc3545;
+      border-color: #dc3545;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .record-section {
+      text-align: center;
+      padding: 20px;
+    }
+    .record-instructions {
+      margin-top: 15px;
+      color: #666;
+      font-size: 1rem;
+    }
+  </style>
+
+  <script>
+    const API_BASE = '';
+    
+    let roomCode = null;
+    let participantId = null;
+    let topic = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordingStartTime = null;
+    let timerInterval = null;
+    let audioBlob = null;
+    let pollInterval = null;
+    let myResponses = [];
+    
+    // IMPORTANT: Track recording state to prevent polling from resetting UI
+    let currentState = 'idle'; // idle, recording, recorded, submitting
+
+    const MAX_RECORDING_TIME = 30;
+
+    // Elements
+    const nameSection = document.getElementById('nameSection');
+    const waitingSection = document.getElementById('waitingSection');
+    const turnWaitSection = document.getElementById('turnWaitSection');
+    const recordSection = document.getElementById('recordSection');
+    const processingSection = document.getElementById('processingSection');
+    const resultSection = document.getElementById('resultSection');
+    const errorSection = document.getElementById('errorSection');
+    const recordBtn = document.getElementById('recordBtn');
+    const timerEl = document.getElementById('timer');
+    const submitContainer = document.getElementById('submitContainer');
+
+    // Get room code from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    roomCode = urlParams.get('code')?.toUpperCase();
+
+    if (roomCode) {
+      document.getElementById('roomCodeShow').textContent = roomCode;
+      fetch(`${API_BASE}/api/rooms/${roomCode}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Room not found');
+          return res.json();
+        })
+        .then(data => {
+          topic = data.topic;
+        })
+        .catch(err => {
+          showError('Room not found. Please check the code.');
+        });
+    } else {
+      showError('No room code provided.');
+    }
+
+    // Join room
+    document.getElementById('joinForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('participantName').value.trim();
+
+      try {
+        const res = await fetch(`${API_BASE}/api/rooms/${roomCode}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error);
+        }
+
+        const data = await res.json();
+        participantId = data.participantId;
+        topic = data.topic;
+
+        document.getElementById('topicText').textContent = topic;
+        document.getElementById('turnTopicText').textContent = topic;
+        document.getElementById('recordTopicText').textContent = topic;
+
+        nameSection.classList.add('hidden');
+        waitingSection.classList.remove('hidden');
+
+        startTurnPolling();
+
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    });
+
+    // Poll for turn status
+    function startTurnPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+
+      const checkTurn = async () => {
+        // DON'T interrupt if user is recording, has recorded, or is submitting
+        if (currentState === 'recording' || currentState === 'recorded' || currentState === 'submitting') {
+          console.log('Skipping poll - user is busy:', currentState);
+          return;
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/api/rooms/${roomCode}/turn-status?participantId=${participantId}`);
+          if (!res.ok) return;
+
+          const data = await res.json();
+
+          if (data.status === 'ended') {
+            clearInterval(pollInterval);
+            showEnded();
+            return;
+          }
+
+          if (data.status === 'waiting') {
+            return; // Still in waiting room
+          }
+
+          if (data.status === 'in_progress') {
+            if (data.isMyTurn) {
+              showRecordSection(data.round);
+            } else {
+              showTurnWait(data);
+            }
+          }
+
+        } catch (error) {
+          console.error('Polling error:', error);
+        }
+      };
+
+      checkTurn();
+      pollInterval = setInterval(checkTurn, 1500);
+    }
+
+    function showTurnWait(data) {
+      currentState = 'idle';
+      hideAllSections();
+      turnWaitSection.classList.remove('hidden');
+      document.getElementById('waitRound').textContent = data.round;
+      document.getElementById('currentSpeakerName').textContent = data.currentTurnName || '---';
+
+      if (myResponses.length > 0) {
+        document.getElementById('myScores').innerHTML = `
+          <h4>Your Previous Responses:</h4>
+          ${myResponses.map(r => `
+            <div class="my-score-item">
+              <div><strong>Round ${r.round}</strong> - Score: ${r.scores.finalScore}</div>
+              <div style="font-size: 0.85rem; color: #666;">💡 ${r.scores.insight}</div>
+            </div>
+          `).join('')}
+        `;
+      }
+    }
+
+    function showRecordSection(round) {
+      // Only reset if we haven't started recording yet
+      if (currentState !== 'idle') {
+        return; // Don't reset if already recording or recorded
+      }
+      
+      hideAllSections();
+      recordSection.classList.remove('hidden');
+      document.getElementById('recordRound').textContent = round;
+      
+      // Reset recording UI only on fresh entry
+      audioBlob = null;
+      audioChunks = [];
+      timerEl.textContent = '30';
+      timerEl.classList.remove('warning', 'recording');
+      recordBtn.classList.remove('recording');
+      document.getElementById('recordIcon').textContent = '🎤';
+      document.getElementById('recordInstructions').textContent = 'Tap to start recording';
+      submitContainer.classList.add('hidden');
+      
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function showEnded() {
+      currentState = 'idle';
+      hideAllSections();
+      resultSection.classList.remove('hidden');
+
+      if (myResponses.length > 0) {
+        const avg = myResponses.reduce((sum, r) => sum + parseFloat(r.scores.finalScore), 0) / myResponses.length;
+        document.getElementById('personalResults').innerHTML = `
+          <div style="background: #f5f5f5; padding: 20px; border: 2px solid #000;">
+            <h3>Your Performance</h3>
+            <p><strong>${myResponses.length}</strong> response(s)</p>
+            <p>Average Score: <strong>${avg.toFixed(1)}</strong></p>
+          </div>
+          ${myResponses.map(r => `
+            <div class="my-score-item" style="margin-top: 15px;">
+              <div><strong>Round ${r.round}</strong> - Score: ${r.scores.finalScore}</div>
+              <div style="font-size: 0.85rem; color: #666;">💡 ${r.scores.insight}</div>
+              <div style="font-size: 0.85rem; margin-top: 5px;">"${r.transcript}"</div>
+            </div>
+          `).join('')}
+        `;
+      } else {
+        document.getElementById('personalResults').innerHTML = '<p>You did not submit any responses.</p>';
+      }
+    }
+
+    function hideAllSections() {
+      nameSection.classList.add('hidden');
+      waitingSection.classList.add('hidden');
+      turnWaitSection.classList.add('hidden');
+      recordSection.classList.add('hidden');
+      processingSection.classList.add('hidden');
+      resultSection.classList.add('hidden');
+      errorSection.classList.add('hidden');
+    }
+
+    // Recording
+    recordBtn.addEventListener('click', async () => {
+      if (currentState === 'recording') {
+        stopRecording();
+      } else if (currentState === 'idle' || currentState === 'recorded') {
+        // Allow re-recording if already recorded
+        if (currentState === 'recorded') {
+          audioBlob = null;
+          audioChunks = [];
+          submitContainer.classList.add('hidden');
+        }
+        await startRecording();
+      }
+    });
+
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Try different MIME types
+        let mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'audio/ogg';
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+              mimeType = '';
+            }
+          }
+        }
+
+        const options = mimeType ? { mimeType } : {};
+        mediaRecorder = new MediaRecorder(stream, options);
+        audioChunks = [];
+        currentState = 'recording';
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const type = mimeType || 'audio/webm';
+          audioBlob = new Blob(audioChunks, { type });
+          stream.getTracks().forEach(track => track.stop());
+          
+          currentState = 'recorded'; // IMPORTANT: Mark as recorded
+          submitContainer.classList.remove('hidden');
+          document.getElementById('recordInstructions').textContent = '✓ Recording complete! Submit your response.';
+          timerEl.classList.remove('recording');
+          timerEl.classList.add('warning');
+        };
+
+        mediaRecorder.start(100);
+        recordingStartTime = Date.now();
+        
+        recordBtn.classList.add('recording');
+        document.getElementById('recordIcon').textContent = '⏹';
+        document.getElementById('recordInstructions').textContent = '🔴 Recording... Tap to stop';
+        timerEl.classList.add('recording');
+        timerEl.classList.remove('warning');
+
+        updateTimer();
+        timerInterval = setInterval(updateTimer, 100);
+
+      } catch (error) {
+        console.error('Microphone error:', error);
+        alert('Could not access microphone. Please allow microphone access and try again.');
+        currentState = 'idle';
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        recordBtn.classList.remove('recording');
+        document.getElementById('recordIcon').textContent = '🎤';
+        
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+      }
+      // State will be set to 'recorded' in onstop handler
+    }
+
+    function updateTimer() {
+      const elapsed = (Date.now() - recordingStartTime) / 1000;
+      const remaining = Math.max(0, MAX_RECORDING_TIME - elapsed);
+      
+      const seconds = Math.floor(remaining);
+      timerEl.textContent = seconds;
+      
+      if (remaining <= 5 && remaining > 0) {
+        timerEl.classList.add('warning');
+        timerEl.classList.remove('recording');
+      }
+
+      if (remaining <= 0) {
+        stopRecording();
+      }
+    }
+
+    // Re-record
+    document.getElementById('reRecordBtn').addEventListener('click', () => {
+      audioBlob = null;
+      audioChunks = [];
+      currentState = 'idle';
+      timerEl.textContent = '30';
+      timerEl.classList.remove('warning', 'recording');
+      recordBtn.classList.remove('recording');
+      document.getElementById('recordIcon').textContent = '🎤';
+      document.getElementById('recordInstructions').textContent = 'Tap to start recording';
+      submitContainer.classList.add('hidden');
+      
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    });
+
+    // Submit
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      if (!audioBlob) {
+        alert('Please record your response first.');
+        return;
+      }
+
+      currentState = 'submitting';
+
+      hideAllSections();
+      processingSection.classList.remove('hidden');
+
+      try {
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'response.webm');
+        formData.append('participantId', participantId);
+
+        const res = await fetch(`${API_BASE}/api/rooms/${roomCode}/submit`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error);
+        }
+
+        const data = await res.json();
+        
+        myResponses.push({
+          round: data.round,
+          transcript: data.transcript,
+          scores: data.scores
+        });
+
+        // Reset state and resume polling
+        currentState = 'idle';
+        startTurnPolling();
+
+      } catch (error) {
+        currentState = 'idle';
+        showError('Submission failed: ' + error.message);
+      }
+    });
+
+    function showError(message) {
+      currentState = 'idle';
+      hideAllSections();
+      errorSection.classList.remove('hidden');
+      document.getElementById('errorMessage').textContent = message;
+    }
+  </script>
+</body>
+</html>

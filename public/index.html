@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DebAItor - AI Debate Judge</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>DebAItor</h1>
+      <p class="subtitle">AI-Powered Debate Judge</p>
+    </header>
+
+    <main class="home-actions">
+      <a href="host.html" class="btn btn-primary btn-large">
+        🎤 Host a Debate
+      </a>
+      
+      <div class="divider">
+        <span>or</span>
+      </div>
+
+      <form id="joinForm" class="join-form">
+        <input 
+          type="text" 
+          id="roomCode" 
+          placeholder="Enter Room Code" 
+          maxlength="6" 
+          autocapitalize="characters"
+          required
+        >
+        <button type="submit" class="btn btn-secondary">
+          Join Room →
+        </button>
+      </form>
+    </main>
+
+    <footer>
+      <p>MVP Demo • Hackathon 2026</p>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('joinForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const code = document.getElementById('roomCode').value.toUpperCase().trim();
+      if (code.length === 6) {
+        window.location.href = `join.html?code=${code}`;
+      }
+    });
+
+    // Auto-uppercase room code input
+    document.getElementById('roomCode').addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase();
+    });
+  </script>
+</body>
+</html>
