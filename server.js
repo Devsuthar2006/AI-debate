@@ -639,9 +639,10 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public', 'host.html')));
 app.get('/join', (req, res) => res.sendFile(path.join(__dirname, 'public', 'join.html')));
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`
+// Start server (only when not in Vercel)
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`
 ╔═══════════════════════════════════════════════╗
 ║      DebAItor - Turn-Based Debate MVP         ║
 ╠═══════════════════════════════════════════════╣
@@ -652,5 +653,10 @@ app.listen(PORT, () => {
 ║  3. Start debate → 4. Control turns           ║
 ║  5. End debate → View results                 ║
 ╚═══════════════════════════════════════════════╝
-  `);
-});
+    `);
+  });
+}
+
+// Export for Vercel
+module.exports = app;
+
